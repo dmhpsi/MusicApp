@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/songslist"
+        android:title="Songs list"
+        android:icon="@drawable/ma_ic_songlist"/>
+    <item android:id="@+id/playing"
+        android:title="Playing"
+        android:icon="@drawable/ma_ic_musicnote"/>
+    <item android:id="@+id/playlists"
+        android:title="Playlists"
+        android:icon="@drawable/ma_ic_playlist"/>
+</menu>
+
