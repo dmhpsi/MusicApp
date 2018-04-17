@@ -42,12 +42,6 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
         songArtist.setText(song.artist);
 
         RelativeLayout top_view = convertView.findViewById(R.id.top_view);
-        top_view.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.i("layout", song.songName);
-            }
-        });
         if (convertView.findViewById(R.id.ALT) == null) {
             RelativeLayout.LayoutParams param = new RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);

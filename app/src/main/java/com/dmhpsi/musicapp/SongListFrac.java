@@ -8,7 +8,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -54,8 +58,8 @@ class Wrapper {
         this.view = view;
         try {
             this.json = new JSONObject(json);
-        } catch (JSONException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            this.json = null;
         }
     }
 }
@@ -87,7 +91,7 @@ class GetDataTask extends AsyncTask<Object, Void, Wrapper> {
 
             return new Wrapper(stringBuffer.toString(), v);
         } catch (Exception ex) {
-            return null;
+            return new Wrapper(null, v);
         } finally {
             if (bufferedReader != null) {
                 try {
@@ -110,11 +114,11 @@ class GetDataTask extends AsyncTask<Object, Void, Wrapper> {
                 SongList.getInstance().add(new SongItem(data.getJSONObject(i)));
             }
             SongListFrac.getInstance().rerender();
-            SwipeRefreshLayout rf = response.view.findViewById(R.id.refresh);
-            rf.setRefreshing(false);
-        } catch (JSONException e) {
-            Log.e("Async", "Json error!");
+        } catch (Exception e) {
+            SongListFrac.getInstance().displayError();
         }
+        SwipeRefreshLayout rf = response.view.findViewById(R.id.refresh);
+        rf.setRefreshing(false);
     }
 }
 
@@ -124,6 +128,10 @@ public class SongListFrac extends Fragment {
     public SongListFrac() {}
     public void rerender() {
         songAdapter.notifyDataSetChanged();
+    }
+    public void displayError() {
+        Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
+
     }
     static SongListFrac getInstance() {
         if(instance == null) {
@@ -137,6 +145,20 @@ public class SongListFrac extends Fragment {
         songAdapter = new SongAdapter(getActivity(), SongList.getInstance().getList());
         ListView songListView = v.findViewById(R.id.song_list);
         songListView.setAdapter(songAdapter);
+        songListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
+            SongItem song = SongList.getInstance().get(i);
+            try {
+                NowPlayingFrac.getInstance().setSongName(song.songName);
+                Player.getInstance().setSongName(song.songName);
+                Player.getInstance().playAudio(
+                        "http://darkha.pythonanywhere.com/getmp3/?id=" + song.id);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            }
+        });
         final GetDataTask g = new GetDataTask();
 
         SwipeRefreshLayout refreshLayout =  v.findViewById(R.id.refresh);

@@ -19,7 +19,7 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
             case 0:
                 return SongListFrac.getInstance();
             case 1:
-                return new NowPlayingFrac();
+                return NowPlayingFrac.getInstance();
             case 2:
                 return new PlaylistFrac();
             default:

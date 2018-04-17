@@ -10,23 +10,24 @@
         android:orientation="vertical">
 
         <LinearLayout
+            android:id="@+id/func_items"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
+            android:baselineAligned="false"
+            android:orientation="vertical">
 
             <SearchView
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
             <!--<Button-->
-                <!--android:id="@+id/refresh_btn"-->
-                <!--style="@style/Widget.AppCompat.Button.Borderless"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:layout_weight="1"-->
-                <!--android:drawableStart="@drawable/ma_ic_refresh" />-->
+            <!--android:id="@+id/refresh_btn"-->
+            <!--style="@style/Widget.AppCompat.Button.Borderless"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_weight="1"-->
+            <!--android:drawableStart="@drawable/ma_ic_refresh" />-->
 
         </LinearLayout>
 
