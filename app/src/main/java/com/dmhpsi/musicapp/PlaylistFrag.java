@@ -6,9 +6,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-public class PlaylistFrac extends Fragment {
+public class PlaylistFrag extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.playlist_frac, container, false);
+        return inflater.inflate(R.layout.playlist_frag, container, false);
     }
 }

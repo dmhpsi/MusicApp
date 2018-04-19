@@ -5,9 +5,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 
 public class PagerAdapter extends FragmentStatePagerAdapter {
-    int mNumOfTabs;
+    private int mNumOfTabs;
 
-    public PagerAdapter(FragmentManager fm, int NumOfTabs) {
+    PagerAdapter(FragmentManager fm, int NumOfTabs) {
         super(fm);
         this.mNumOfTabs = NumOfTabs;
     }
@@ -17,11 +17,11 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
 
         switch (position) {
             case 0:
-                return SongListFrac.getInstance();
+                return new SongListFrag();
             case 1:
-                return NowPlayingFrac.getInstance();
+                return new NowPlayingFrag();
             case 2:
-                return new PlaylistFrac();
+                return new PlaylistFrag();
             default:
                 return null;
         }

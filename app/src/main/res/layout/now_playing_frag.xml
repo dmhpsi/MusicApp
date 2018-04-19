@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
@@ -38,15 +38,6 @@
         android:orientation="vertical"
         android:visibility="visible">
 
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="false"
-            android:layout_centerInParent="false"
-            android:layout_centerVertical="true" />
-
         <SeekBar
             android:id="@+id/seek_bar"
             style="@style/Widget.AppCompat.SeekBar"
@@ -55,36 +46,64 @@
             android:layout_above="@+id/func_btns"
             android:clickable="false" />
 
+
         <LinearLayout
             android:id="@+id/func_btns"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:orientation="horizontal">
+            android:gravity="center">
 
-            <Button
+            <ImageButton
+                android:id="@+id/repeat_btn"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:baselineAligned="false"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ma_ic_repeat" />
+
+            <ImageButton
                 android:id="@+id/back_btn"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="prev" />
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ma_ic_back" />
 
-            <Button
+            <ImageButton
                 android:id="@+id/play_btn"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Play/pause" />
+                android:layout_weight="6"
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ma_ic_play" />
 
-            <Button
+            <ImageButton
                 android:id="@+id/next_btn"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ma_ic_next" />
+
+            <ImageButton
+                android:id="@+id/shuffle_btn"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="next" />
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ma_ic_shuffle" />
         </LinearLayout>
     </RelativeLayout>
 

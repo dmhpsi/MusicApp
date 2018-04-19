@@ -19,11 +19,6 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
         super(context, 0, songList);
     }
 
-    @Override
-    public SongItem getItem(int pos) {
-        return SongList.getInstance().get(pos);
-    }
-
     @NonNull
     @Override
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
