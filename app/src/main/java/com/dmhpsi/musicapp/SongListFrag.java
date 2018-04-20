@@ -1,5 +1,6 @@
 package com.dmhpsi.musicapp;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -24,6 +25,11 @@ import java.util.ArrayList;
 public class SongListFrag extends Fragment {
     SongList songList;
     private SongAdapter songAdapter;
+    Player player;
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
 
     class SongList {
         private ArrayList<SongItem> list = new ArrayList<>();
@@ -135,9 +141,13 @@ public class SongListFrag extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
                 SongItem song = songList.get(i);
                 try {
-                    Player.getInstance().setSongName(song.songName);
-                    Player.getInstance().playAudio(
-                            "http://darkha.pythonanywhere.com/getmp3/?id=" + song.id);
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                    getActivity().startService(startIntent);
+                    player.setSongName(song.songName);
+                    player.setSongArtist(song.artist);
+                    player.playAudio(
+                            Constants.URL.GET_MP3 + song.id);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -150,11 +160,11 @@ public class SongListFrag extends Fragment {
             @Override
             public void onRefresh() {
                 GetDataTask g = new GetDataTask();
-                g.execute("http://darkha.pythonanywhere.com/getinfo/", v);
+                g.execute(Constants.URL.GET_INFO, v);
             }
         });
 
-        g.execute("http://darkha.pythonanywhere.com/getinfo/", v);
+        g.execute(Constants.URL.GET_INFO, v);
         return v;
     }
 }

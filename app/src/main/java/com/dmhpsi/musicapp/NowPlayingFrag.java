@@ -5,7 +5,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.ColorRes;
 import android.support.annotation.DrawableRes;
-import android.support.annotation.IdRes;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
@@ -53,6 +52,11 @@ public class NowPlayingFrag extends Fragment {
 
     private boolean seekerTouching;
     Timer timer;
+    Player player;
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
 
     public void updateSongName(final Context context) {
         try {
@@ -60,7 +64,7 @@ public class NowPlayingFrag extends Fragment {
                 public void run() {
                     try {
                         TextView playing_song_name = ((Activity)context).findViewById(R.id.playing_song_name);
-                        playing_song_name.setText(Player.getInstance().getSongName());
+                        playing_song_name.setText(player.getSongName());
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -80,13 +84,13 @@ public class NowPlayingFrag extends Fragment {
                 public void run() {
                     try {
                         TextView time = ((Activity)context).findViewById(R.id.time);
-                        int newTime = Player.getInstance().getCurrentPosition();
+                        int newTime = player.getCurrentPosition();
                         int t = Math.round(newTime / 1000f);
                         String x = String.format("%02d:%02d", t / 60, t % 60);
                         time.setText(x);
                         if (!seekerTouching) {
                             SeekBar seekBar = ((Activity)context).findViewById(R.id.seek_bar);
-                            seekBar.setProgress(Math.round(newTime * 100.0f / Player.getInstance().getCurrentSongDuration()));
+                            seekBar.setProgress(Math.round(newTime * 100.0f / player.getCurrentSongDuration()));
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -105,7 +109,7 @@ public class NowPlayingFrag extends Fragment {
                 public void run() {
                     try {
                         SeekBar seekBar = ((Activity)context).findViewById(R.id.seek_bar);
-                        seekBar.setSecondaryProgress(Player.getInstance().getBufferProgress());
+                        seekBar.setSecondaryProgress(player.getBufferProgress());
                     } catch (Exception e) {
                         //
                     }
@@ -148,14 +152,14 @@ public class NowPlayingFrag extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         updateSongName(getContext());
-        Player.getInstance().setOnBufferUpdateEventListener(new OnBufferUpdateEventListener() {
+        player.setOnBufferUpdateEventListener(new OnBufferUpdateEventListener() {
             @Override
             public void onEvent() {
                 updateBufferProgress(getContext());
             }
         });
 
-        Player.getInstance().setOnSongChangeEventListener(new OnSongChangeEventListener() {
+        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
             @Override
             public void onEvent() {
                 updateSongName(getContext());
@@ -164,12 +168,12 @@ public class NowPlayingFrag extends Fragment {
 
         final ImageButton playBtn = view.findViewById(R.id.play_btn);
         TextView playing_song_name = view.findViewById(R.id.playing_song_name);
-        playing_song_name.setText(Player.getInstance().getSongName());
+        playing_song_name.setText(player.getSongName());
 
         seekerTouching = false;
         timer.start();
 
-        Player.getInstance().setOnStateChangeEventListener(new OnStateChangeEventListener() {
+        player.setOnStateChangeEventListener(new OnStateChangeEventListener() {
             @Override
             public void onEvent(PlayerStates state) {
                 if (state == PlayerStates.PLAYING) {
@@ -183,20 +187,26 @@ public class NowPlayingFrag extends Fragment {
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (Player.getInstance().isPlaying()) {
-                    Player.getInstance().pause();
+                if (player.isPlaying()) {
+                    player.pause();
                 }
                 else {
-                    Player.getInstance().start();
+                    player.start();
                 }
             }
         });
+
+        if (player.isPlaying()) {
+            setBtn(playBtn, R.drawable.ma_ic_pause, -1);
+        } else {
+            setBtn(playBtn, R.drawable.ma_ic_play, -1);
+        }
 
         ImageButton shuffleBtn, repeatBtn;
 
         repeatBtn = view.findViewById(R.id.repeat_btn);
 
-        RepeatStates repeatState = Player.getInstance().getRepeatState();
+        RepeatStates repeatState = player.getRepeatState();
         if (repeatState == RepeatStates.REPEAT_NONE) {
             setBtn(repeatBtn, R.drawable.ma_ic_repeat, R.color.colorAccent);
         } else if (repeatState == RepeatStates.REPEAT_ALL) {
@@ -207,23 +217,23 @@ public class NowPlayingFrag extends Fragment {
         repeatBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                RepeatStates repeatState = Player.getInstance().getRepeatState();
+                RepeatStates repeatState = player.getRepeatState();
                 ImageButton btn = (ImageButton)view;
                 if (repeatState == RepeatStates.REPEAT_NONE) {
-                    Player.getInstance().setRepeatState(RepeatStates.REPEAT_ALL);
+                    player.setRepeatState(RepeatStates.REPEAT_ALL);
                     setBtn(btn, R.drawable.ma_ic_repeat, R.color.colorPrimary);
                 } else if (repeatState == RepeatStates.REPEAT_ALL) {
-                    Player.getInstance().setRepeatState(RepeatStates.REPEAT_ONE);
+                    player.setRepeatState(RepeatStates.REPEAT_ONE);
                     setBtn(btn, R.drawable.ma_ic_repeat_one, R.color.colorPrimary);
                 } else {
-                    Player.getInstance().setRepeatState(RepeatStates.REPEAT_NONE);
+                    player.setRepeatState(RepeatStates.REPEAT_NONE);
                     setBtn(btn, R.drawable.ma_ic_repeat, R.color.colorAccent);
                 }
             }
         });
 
         shuffleBtn = view.findViewById(R.id.shuffle_btn);
-        ShuffleStates shuffleState = Player.getInstance().getShuffleState();
+        ShuffleStates shuffleState = player.getShuffleState();
         if (shuffleState == ShuffleStates.SHUFFLE_ON) {
             setBtn(shuffleBtn, -1, R.color.colorPrimary);
         } else {
@@ -232,13 +242,13 @@ public class NowPlayingFrag extends Fragment {
         shuffleBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ShuffleStates shuffleState = Player.getInstance().getShuffleState();
+                ShuffleStates shuffleState = player.getShuffleState();
                 ImageButton btn = (ImageButton)view;
                 if (shuffleState == ShuffleStates.SHUFFLE_ON) {
-                    Player.getInstance().setShuffleState(ShuffleStates.SHUFFLE_OFF);
+                    player.setShuffleState(ShuffleStates.SHUFFLE_OFF);
                     setBtn(btn, -1, R.color.colorAccent);
                 } else {
-                    Player.getInstance().setShuffleState(ShuffleStates.SHUFFLE_ON);
+                    player.setShuffleState(ShuffleStates.SHUFFLE_ON);
                     setBtn(btn, -1, R.color.colorPrimary);
                 }
             }
@@ -248,7 +258,7 @@ public class NowPlayingFrag extends Fragment {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                Player.getInstance().seekTo(seekBar.getProgress() * Player.getInstance().getCurrentSongDuration() / 100);
+                player.seekTo(seekBar.getProgress() * player.getCurrentSongDuration() / 100);
                 seekerTouching = false;
             }
 
@@ -268,5 +278,11 @@ public class NowPlayingFrag extends Fragment {
     public void onPause() {
         super.onPause();
         timer.stop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        timer.start();
     }
 }
