@@ -1,7 +1,10 @@
 package com.dmhpsi.musicapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.ColorRes;
 import android.support.annotation.DrawableRes;
@@ -12,8 +15,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class NowPlayingFrag extends Fragment {
     class Timer {
@@ -29,9 +34,9 @@ public class NowPlayingFrag extends Fragment {
                 Runnable runnable = new Runnable() {
                     public void run() {
                     while (true) {
-                        updateTime(context);
+                        updateUI(context);
                         try {
-                            Thread.sleep(100);
+                            Thread.sleep(200);
                         } catch (InterruptedException e) {
                             break;
                         }
@@ -53,45 +58,36 @@ public class NowPlayingFrag extends Fragment {
     private boolean seekerTouching;
     Timer timer;
     Player player;
+    SongList playlist;
+    SongAdapter adapter;
 
     public void setPlayer(Player player) {
         this.player = player;
     }
 
-    public void updateSongName(final Context context) {
-        try {
-            ((Activity)context).runOnUiThread(new Runnable() {
-                public void run() {
-                    try {
-                        TextView playing_song_name = ((Activity)context).findViewById(R.id.playing_song_name);
-                        playing_song_name.setText(player.getSongName());
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void updateTime(final Context context) {
+    public void updateUI(final Context context) {
         try {
             ((Activity)context).runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        TextView time = ((Activity)context).findViewById(R.id.time);
-                        int newTime = player.getCurrentPosition();
+                        TextView time = ((Activity) context).findViewById(R.id.totaltime);
+                        int newTime = player.getCurrentSongDuration();
                         int t = Math.round(newTime / 1000f);
                         String x = String.format("%02d:%02d", t / 60, t % 60);
                         time.setText(x);
+
+                        time = ((Activity) context).findViewById(R.id.time);
+                        newTime = player.getCurrentPosition();
+                        t = Math.round(newTime / 1000f);
+                        x = String.format("%02d:%02d", t / 60, t % 60);
+                        time.setText(x);
                         if (!seekerTouching) {
-                            SeekBar seekBar = ((Activity)context).findViewById(R.id.seek_bar);
+                            SeekBar seekBar = ((Activity) context).findViewById(R.id.seek_bar);
                             seekBar.setProgress(Math.round(newTime * 100.0f / player.getCurrentSongDuration()));
                         }
+                        adapter.setSpecialItem(player.getCurrentSong());
+                        adapter.notifyDataSetChanged();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -148,10 +144,10 @@ public class NowPlayingFrag extends Fragment {
     }
 
     @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(final View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        updateSongName(getContext());
+//        updateSongName(getContext());
         player.setOnBufferUpdateEventListener(new OnBufferUpdateEventListener() {
             @Override
             public void onEvent() {
@@ -159,19 +155,31 @@ public class NowPlayingFrag extends Fragment {
             }
         });
 
-        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
-            @Override
-            public void onEvent() {
-                updateSongName(getContext());
-            }
-        });
+//        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
+//            @Override
+//            public void onEvent() {
+//                updateSongName(getContext());
+//            }
+//        });
 
         final ImageButton playBtn = view.findViewById(R.id.play_btn);
-        TextView playing_song_name = view.findViewById(R.id.playing_song_name);
-        playing_song_name.setText(player.getSongName());
 
         seekerTouching = false;
         timer.start();
+
+        playlist = new SongList();
+        adapter = new SongAdapter(getActivity(), playlist.getList(), ListPurpose.PLAYLIST);
+        ListView playlistsView = view.findViewById(R.id.curr_pl_view);
+        playlistsView.setAdapter(adapter);
+        playlist.clear();
+
+        Playlist lastPl = PlaylistManager.getInstance(getContext()).getLastPlaylist();
+        if (lastPl != null) {
+            playlist.add(lastPl.getSongs());
+        } else {
+            playlist.add(PlaylistManager.getInstance(getContext()).getLastSong());
+        }
+        adapter.notifyDataSetChanged();
 
         player.setOnStateChangeEventListener(new OnStateChangeEventListener() {
             @Override
@@ -184,6 +192,20 @@ public class NowPlayingFrag extends Fragment {
             }
         });
 
+        PlaylistManager.getInstance(getContext()).setOnLastPlaylistChangedListener(new OnLastPlaylistChangedListener() {
+            @Override
+            public void onEvent() {
+                Playlist lastPl = PlaylistManager.getInstance(getContext()).getLastPlaylist();
+                playlist.clear();
+                if (lastPl != null) {
+                    playlist.add(lastPl.getSongs());
+                } else {
+                    playlist.add(player.getCurrentSong());
+                }
+                adapter.notifyDataSetChanged();
+            }
+        });
+
         playBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -191,8 +213,85 @@ public class NowPlayingFrag extends Fragment {
                     player.pause();
                 }
                 else {
-                    player.start();
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    if (player.start()) {
+                        startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                        getActivity().startService(startIntent);
+                    } else {
+                        Playlist pl = PlaylistManager.getInstance(getContext()).getLastPlaylist();
+                        if (pl != null) {
+                            startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                            getActivity().startService(startIntent);
+                            player.playPlaylist(pl);
+                        } else {
+                            try {
+                                player.playSong(playlist.get(0));
+                                startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                                getActivity().startService(startIntent);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
+            }
+        });
+
+        view.findViewById(R.id.next_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (player.next() != -1) {
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                    getActivity().startService(startIntent);
+                }
+            }
+        });
+
+        view.findViewById(R.id.prev_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (player.prev() != -1) {
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                    getActivity().startService(startIntent);
+                }
+            }
+        });
+
+        view.findViewById(R.id.save_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Save playlist as ...");
+                LayoutInflater inflater = getActivity().getLayoutInflater();
+                final View dialog = inflater.inflate(R.layout.add_playlist, null);
+                builder.setView(dialog)
+                        .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                TextView tv = dialog.findViewById(R.id.pl_name);
+                                String input = tv.getText().toString();
+                                if (!input.matches("")) {
+                                    Playlist pl = new Playlist(
+                                            PlaylistManager.getInstance(
+                                                    getContext()).getLastPlaylist());
+                                    pl.setName(input);
+                                    if (PlaylistManager.getInstance(getContext()).addPlaylist(pl, getContext()) == -1) {
+                                        Toast.makeText(getContext(),
+                                                "Playlist add failed! Duplicated playlist name found",
+                                                Toast.LENGTH_LONG)
+                                                .show();
+                                    } else {
+                                        Toast.makeText(getContext(),
+                                                "Playlist added successfully!",
+                                                Toast.LENGTH_LONG)
+                                                .show();
+                                    }
+                                }
+                            }
+                        }).setNegativeButton("Cancel", null);
+                builder.create().show();
             }
         });
 
@@ -208,7 +307,7 @@ public class NowPlayingFrag extends Fragment {
 
         RepeatStates repeatState = player.getRepeatState();
         if (repeatState == RepeatStates.REPEAT_NONE) {
-            setBtn(repeatBtn, R.drawable.ma_ic_repeat, R.color.colorAccent);
+            setBtn(repeatBtn, R.drawable.ma_ic_repeat, R.color.colorPrimaryLight);
         } else if (repeatState == RepeatStates.REPEAT_ALL) {
             setBtn(repeatBtn, R.drawable.ma_ic_repeat, R.color.colorPrimary);
         } else {
@@ -227,7 +326,7 @@ public class NowPlayingFrag extends Fragment {
                     setBtn(btn, R.drawable.ma_ic_repeat_one, R.color.colorPrimary);
                 } else {
                     player.setRepeatState(RepeatStates.REPEAT_NONE);
-                    setBtn(btn, R.drawable.ma_ic_repeat, R.color.colorAccent);
+                    setBtn(btn, R.drawable.ma_ic_repeat, R.color.colorPrimaryLight);
                 }
             }
         });
@@ -237,7 +336,7 @@ public class NowPlayingFrag extends Fragment {
         if (shuffleState == ShuffleStates.SHUFFLE_ON) {
             setBtn(shuffleBtn, -1, R.color.colorPrimary);
         } else {
-            setBtn(shuffleBtn, -1, R.color.colorAccent);
+            setBtn(shuffleBtn, -1, R.color.colorPrimaryLight);
         }
         shuffleBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -246,7 +345,7 @@ public class NowPlayingFrag extends Fragment {
                 ImageButton btn = (ImageButton)view;
                 if (shuffleState == ShuffleStates.SHUFFLE_ON) {
                     player.setShuffleState(ShuffleStates.SHUFFLE_OFF);
-                    setBtn(btn, -1, R.color.colorAccent);
+                    setBtn(btn, -1, R.color.colorPrimaryLight);
                 } else {
                     player.setShuffleState(ShuffleStates.SHUFFLE_ON);
                     setBtn(btn, -1, R.color.colorPrimary);

@@ -4,13 +4,13 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
 
 public class SongListFrag extends Fragment {
     SongList songList;
@@ -29,22 +28,6 @@ public class SongListFrag extends Fragment {
 
     public void setPlayer(Player player) {
         this.player = player;
-    }
-
-    class SongList {
-        private ArrayList<SongItem> list = new ArrayList<>();
-        void add(SongItem song) {
-            list.add(song);
-        }
-        void clear() {
-            list.clear();
-        }
-        SongItem get(int pos) {
-            return list.get(pos);
-        }
-        ArrayList<SongItem> getList() {
-            return list;
-        }
     }
 
     class Wrapper {
@@ -62,11 +45,6 @@ public class SongListFrag extends Fragment {
     }
 
     class GetDataTask extends AsyncTask<Object, Void, Wrapper> {
-
-        @Override
-        protected void onPreExecute() {
-        }
-
         @Override
         protected Wrapper doInBackground(Object... objs) {
             URLConnection urlConn;
@@ -74,8 +52,8 @@ public class SongListFrag extends Fragment {
 
             View v = (View)objs[1];
             SwipeRefreshLayout rf = v.findViewById(R.id.refresh);
-            rf.setRefreshing(true);
             try {
+                rf.setRefreshing(true);
                 URL url = new URL((String)objs[0]);
                 urlConn = url.openConnection();
                 bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
@@ -124,8 +102,7 @@ public class SongListFrag extends Fragment {
         songAdapter.notifyDataSetChanged();
     }
     public void displayError() {
-        Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
-
+        //Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
     }
 
 
@@ -133,7 +110,7 @@ public class SongListFrag extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         final View v = inflater.inflate(R.layout.song_list_frag, container, false);
         songList = new SongList();
-        songAdapter = new SongAdapter(getActivity(), songList.getList());
+        songAdapter = new SongAdapter(getActivity(), songList.getList(), ListPurpose.ALL_SONG);
         ListView songListView = v.findViewById(R.id.song_list);
         songListView.setAdapter(songAdapter);
         songListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -144,10 +121,9 @@ public class SongListFrag extends Fragment {
                     Intent startIntent = new Intent(getContext(), Player.class);
                     startIntent.setAction(Constants.PLAYER.START_SERVICE);
                     getActivity().startService(startIntent);
-                    player.setSongName(song.songName);
-                    player.setSongArtist(song.artist);
-                    player.playAudio(
-                            Constants.URL.GET_MP3 + song.id);
+                    player.playSong(song);
+                    ViewPager viewPager = getActivity().findViewById(R.id.pager);
+                    viewPager.setCurrentItem(1);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

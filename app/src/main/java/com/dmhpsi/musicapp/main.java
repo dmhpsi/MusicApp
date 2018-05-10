@@ -73,7 +73,6 @@ public class main extends AppCompatActivity {
                 return false;
             }
         });
-
         final TabLayout tabLayout = findViewById(R.id.tab_layout);
         final ViewPager viewPager = findViewById(R.id.pager);
 

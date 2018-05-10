@@ -27,7 +27,9 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
                 nowPlayingFrag.setPlayer(player);
                 return nowPlayingFrag;
             case 2:
-                return new PlaylistFrag();
+                PlaylistFrag playlistFrag = new PlaylistFrag();
+                playlistFrag.setPlayer(player);
+                return playlistFrag;
             default:
                 return null;
         }

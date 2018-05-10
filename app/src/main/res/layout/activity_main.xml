@@ -26,6 +26,7 @@
         android:background="@color/colorPrimary"
         android:minHeight="?attr/actionBarSize"
         android:layout_below="@+id/toolbar"
+        app:tabIndicatorColor="@color/colorPrimaryLight"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
 
 

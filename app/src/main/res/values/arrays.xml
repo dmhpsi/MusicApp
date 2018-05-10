@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="song_list_array">
+        <item>Add to playlist...</item>
+        <item>Details</item>
+    </array>
+</resources>

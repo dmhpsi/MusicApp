@@ -12,20 +12,26 @@ enum ShuffleStates {
     SHUFFLE_ON, SHUFFLE_OFF
 }
 
+enum ListPurpose {
+    ALL_SONG, PLAYLIST, PLAYLIST_SONG
+}
+
 public class Constants {
     public interface URL {
-        static final String GET_INFO = "http://darkha.pythonanywhere.com/getinfo/";
-        static final String GET_MP3 = "http://darkha.pythonanywhere.com/getmp3/?id=";
+        String HOST = "darkha.pythonanywhere.com";
+        String GET_INFO = "http://" + HOST + "/getinfo/";
+        String GET_MP3 = "http://" + HOST + "/getmp3/?id=";
     }
 
     public interface PLAYER {
-        static final String START_SERVICE = "Start music player service";
-        static final String STOP_SERVICE = "Stop music player service";
-        static final String PLAY_INTENT = "Play intent";
-        static final String RESUME_APP = "Resume app";
+        String NOT_IN_PLAYLIST = "notpl";
+        String START_SERVICE = "Start music player service";
+        String STOP_SERVICE = "Stop music player service";
+        String PLAY_INTENT = "Play intent";
+        String RESUME_APP = "Resume app";
     }
 
     public interface NOTIFICATION_ID {
-        public static int FOREGROUND_SERVICE = 101;
+        int FOREGROUND_SERVICE = 101;
     }
 }

@@ -4,13 +4,14 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
+import java.io.IOException;
 import java.util.Objects;
 
 interface OnBufferUpdateEventListener {
@@ -64,28 +65,37 @@ public class Player extends Service {
             playIntent.setAction(Constants.PLAYER.PLAY_INTENT);
             PendingIntent pplayIntent = PendingIntent.getService(this, 0,
                     playIntent, 0);
+
+
+            Intent stopIntent = new Intent(this, Player.class);
+            stopIntent.setAction(Constants.PLAYER.STOP_SERVICE);
+            PendingIntent pstopIntent = PendingIntent.getService(this, 0,
+                    stopIntent, 0);
+
 //
 //            Intent nextIntent = new Intent(this, ForegroundService.class);
 //            nextIntent.setAction(Constants.ACTION.NEXT_ACTION);
 //            PendingIntent pnextIntent = PendingIntent.getService(this, 0,
 //                    nextIntent, 0);
 
-            Bitmap icon = BitmapFactory.decodeResource(getResources(),
-                    R.drawable.ma_ic_more_im);
+//            Bitmap icon = BitmapFactory.decodeResource(getResources(),
+//                    R.drawable.ma_ic_more_im);
 
             Notification notification = new Notification.Builder(this)
-                    .setContentTitle(songName)
-                    .setTicker(songName)
-                    .setContentText(songArtist)
-                    .setSmallIcon(R.drawable.ma_ic_more_im)
-                    .setLargeIcon(
-                            Bitmap.createScaledBitmap(icon, 128, 128, false))
+                    .setContentTitle(currentSong.songName)
+                    .setTicker(currentSong.songName)
+                    .setContentText(currentSong.artist)
+                    .setSmallIcon(R.drawable.ma_ic_noti_im)
+//                    .setLargeIcon(
+//                            Bitmap.createScaledBitmap(icon, 128, 128, false))
                     .setContentIntent(pendingIntent)
                     .setOngoing(true)
 //                    .addAction(android.R.drawable.ic_media_previous,
 //                            "Previous", ppreviousIntent)
-                    .addAction(R.drawable.ma_ic_more_im, "Play",
+                    .addAction(R.drawable.ma_ic_play_im, "Play",
                             pplayIntent)
+                    .addAction(R.drawable.ma_ic_stop_im, "Stop",
+                            pstopIntent)
 //                    .addAction(android.R.drawable.ic_media_next, "Next",
 //                            pnextIntent).build();
                     .build();
@@ -101,17 +111,19 @@ public class Player extends Service {
             Log.i(LOG_TAG, "Clicked Play");
         } else if (intent.getAction().equals(Constants.ACTION.NEXT_ACTION)) {
             Log.i(LOG_TAG, "Clicked Next");
-        } else if (intent.getAction().equals(
-                Constants.ACTION.STOPFOREGROUND_ACTION)) {
-            Log.i(LOG_TAG, "Received Stop Foreground Intent");
+        } */ else if (Objects.equals(intent.getAction(), Constants.PLAYER.STOP_SERVICE)) {
+            Log.e("Servicce", "killed");
+            stop();
             stopForeground(true);
             stopSelf();
-        }*/
+        } else {
+            Log.e("service", intent.getAction());
+        }
         return START_STICKY;
     }
 
     private MediaPlayer mediaPlayer;
-    private String songName, songArtist;
+    private SongItem currentSong;
     private int currentSongDuration, bufferProgress;
     private RepeatStates repeatState;
     private ShuffleStates shuffleState;
@@ -121,14 +133,26 @@ public class Player extends Service {
         onBufferUpdateEventListener = eventListener;
     }
 
+    @Nullable
     private OnSongChangeEventListener onSongChangeEventListener;
-    public void setOnSongChangeEventListener(OnSongChangeEventListener eventListener) {
+
+    public void setOnSongChangeEventListener(@Nullable OnSongChangeEventListener eventListener) {
         onSongChangeEventListener = eventListener;
     }
 
     private OnStateChangeEventListener onStateChangeEventListener;
     public void setOnStateChangeEventListener(OnStateChangeEventListener eventListener) {
         onStateChangeEventListener = eventListener;
+    }
+
+    private interface OnNextPrevEventListener {
+        void onEvent(boolean isNext);
+    }
+
+    private OnNextPrevEventListener onNextPrevEventListener;
+
+    private void setOnNextPrevEventListener(OnNextPrevEventListener onNextPrevEventListener) {
+        this.onNextPrevEventListener = onNextPrevEventListener;
     }
 
     public void setRepeatState(RepeatStates repeatState) {
@@ -148,19 +172,15 @@ public class Player extends Service {
     }
 
     public String getSongName() {
-        return songName;
-    }
-
-    public void setSongName(String songName) {
-        this.songName = songName;
-    }
-
-    public void setSongArtist(String songArtist) {
-        this.songArtist = songArtist;
+        return currentSong.songName;
     }
 
     public int getCurrentSongDuration() {
         return currentSongDuration;
+    }
+
+    public SongItem getCurrentSong() {
+        return currentSong;
     }
 
     public int getCurrentPosition() {
@@ -185,20 +205,35 @@ public class Player extends Service {
         onStateChangeEventListener.onEvent(PlayerStates.PAUSED);
     }
 
-    public void start() {
+    public boolean start() {
         if (mediaPlayer != null) {
             mediaPlayer.start();
             onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+            return true;
         }
+        return false;
     }
 
-    public void playAudio(String url) throws Exception
-    {
+    public void stop() {
+        mediaPlayer.pause();
+        mediaPlayer.seekTo(0);
+        onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
+    }
+
+    private void playAudio(SongItem song) {
         killMediaPlayer();
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setDataSource(url);
+        currentSong = new SongItem(song);
+        if (mediaPlayer == null)
+            mediaPlayer = new MediaPlayer();
+        try {
+            mediaPlayer.setDataSource(Constants.URL.GET_MP3 + song.id);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         bufferProgress = 0;
-        onSongChangeEventListener.onEvent();
+        if (onSongChangeEventListener != null) {
+            onSongChangeEventListener.onEvent();
+        }
         onBufferUpdateEventListener.onEvent();
         mediaPlayer.prepareAsync();
 
@@ -217,6 +252,26 @@ public class Player extends Service {
                 onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
             }
         });
+        PlaylistManager.getInstance(getApplicationContext()).setLastSong(song, getApplicationContext());
+    }
+
+    private void killMediaPlayer() {
+        if (mediaPlayer != null) {
+            onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
+            try {
+//                mediaPlayer.start();
+                mediaPlayer.reset();
+//                mediaPlayer.release();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void playPlaylist(@NonNull Playlist playlist) {
+        PlaylistManager pm = PlaylistManager.getInstance(getApplicationContext());
+        pm.defineLastPlaylist(playlist, getApplicationContext());
+        playAudio(pm.getNextSongItem(""));
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
@@ -227,26 +282,72 @@ public class Player extends Service {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     mp.seekTo(0);
                     mp.start();
-                } /*else {
+                } else {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
-                    *** next in playlist ***
-                }*/
+                    playAudio(PlaylistManager.getInstance(getApplicationContext())
+                            .getNextSongItem(currentSong.id));
+                }
+            }
+        });
+        setOnNextPrevEventListener(new OnNextPrevEventListener() {
+            @Override
+            public void onEvent(boolean isNext) {
+                if (isNext) {
+                    onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+                    playAudio(PlaylistManager.getInstance(getApplicationContext())
+                            .getNextSongItem(currentSong.id));
+                } else {
+                    onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+                    playAudio(PlaylistManager.getInstance(getApplicationContext())
+                            .getPrevSongItem(currentSong.id));
+                }
             }
         });
     }
 
-    private void killMediaPlayer() {
-        if(mediaPlayer != null) {
-            onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
-            try {
-                mediaPlayer.start();
-                mediaPlayer.reset();
-                mediaPlayer.release();
-                mediaPlayer = null;
+    public void playSong(@NonNull final SongItem song) {
+        Playlist pl = new Playlist("", song);
+        PlaylistManager.getInstance(getApplicationContext())
+                .defineLastPlaylist(pl, getApplicationContext());
+        playAudio(song);
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                if (repeatState == RepeatStates.REPEAT_NONE || repeatState == RepeatStates.REPEAT_ALL) {
+                    onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
+                    mp.seekTo(0);
+                } else {
+                    onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+                    PlaylistManager.getInstance(getApplicationContext())
+                            .defineLastPlaylist(null, getApplicationContext());
+                    playAudio(song);
+                }
             }
-            catch(Exception e) {
-                e.printStackTrace();
+        });
+
+        setOnNextPrevEventListener(new OnNextPrevEventListener() {
+            @Override
+            public void onEvent(boolean isNext) {
+                mediaPlayer.seekTo(0);
             }
+        });
+    }
+
+    public int next() {
+        if (onNextPrevEventListener != null) {
+            onNextPrevEventListener.onEvent(true);
+            return 1;
+        } else {
+            return -1;
+        }
+    }
+
+    public int prev() {
+        if (onNextPrevEventListener != null) {
+            onNextPrevEventListener.onEvent(false);
+            return 1;
+        } else {
+            return -1;
         }
     }
 
