@@ -42,6 +42,21 @@ class Playlist {
         return 0;
     }
 
+    void removeSong(String songId) {
+        try {
+            for (int i = 0; i < count; i++) {
+                JSONObject song = songs.getJSONObject(i);
+                if (song.getString("id").equals(songId)) {
+                    songs.remove(i);
+                    count--;
+                    return;
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     ArrayList<SongItem> getSongs() {
         ArrayList<SongItem> songItems = new ArrayList<>();
         try {
@@ -65,6 +80,19 @@ class Playlist {
             }
         } catch (JSONException e) {
             e.printStackTrace();
+        }
+        return null;
+    }
+
+    SongItem getSong(int id) {
+        if (songs.isNull(id)) {
+            return null;
+        } else {
+            try {
+                return new SongItem(songs.getJSONObject(id));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
@@ -311,6 +339,11 @@ public class PlaylistManager {
 
     public void setLastSong(SongItem lastSong, Context context) {
         this.lastSong = new SongItem(lastSong);
+        save(context);
+    }
+
+    public void removeSongFromLastPlaylist(String songId, Context context) {
+        lastPl.removeSong(songId);
         save(context);
     }
 

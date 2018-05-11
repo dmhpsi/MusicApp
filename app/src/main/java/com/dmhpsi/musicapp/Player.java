@@ -268,10 +268,10 @@ public class Player extends Service {
         }
     }
 
-    public void playPlaylist(@NonNull Playlist playlist) {
+    public void playPlaylist(@NonNull Playlist playlist, String startId) {
         PlaylistManager pm = PlaylistManager.getInstance(getApplicationContext());
         pm.defineLastPlaylist(playlist, getApplicationContext());
-        playAudio(pm.getNextSongItem(""));
+        playAudio(pm.getPrevSongItem(pm.getNextSongItem(startId).id));
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {

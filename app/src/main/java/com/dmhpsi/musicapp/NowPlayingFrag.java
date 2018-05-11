@@ -14,6 +14,7 @@ import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -86,8 +87,8 @@ public class NowPlayingFrag extends Fragment {
                             SeekBar seekBar = ((Activity) context).findViewById(R.id.seek_bar);
                             seekBar.setProgress(Math.round(newTime * 100.0f / player.getCurrentSongDuration()));
                         }
-                        adapter.setSpecialItem(player.getCurrentSong());
-                        adapter.notifyDataSetChanged();
+//                        adapter.setSpecialItem(player.getCurrentSong());
+//                        adapter.notifyDataSetChanged();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -155,12 +156,13 @@ public class NowPlayingFrag extends Fragment {
             }
         });
 
-//        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
-//            @Override
-//            public void onEvent() {
-//                updateSongName(getContext());
-//            }
-//        });
+        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
+            @Override
+            public void onEvent() {
+                adapter.setSpecialItem(player.getCurrentSong());
+                adapter.notifyDataSetChanged();
+            }
+        });
 
         final ImageButton playBtn = view.findViewById(R.id.play_btn);
 
@@ -168,9 +170,24 @@ public class NowPlayingFrag extends Fragment {
         timer.start();
 
         playlist = new SongList();
-        adapter = new SongAdapter(getActivity(), playlist.getList(), ListPurpose.PLAYLIST);
+        adapter = new SongAdapter(getActivity(), playlist.getList(), ListPurpose.PLAYLIST_SONG);
         ListView playlistsView = view.findViewById(R.id.curr_pl_view);
         playlistsView.setAdapter(adapter);
+        playlistsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                SongItem song = playlist.get(i);
+                try {
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                    getActivity().startService(startIntent);
+                    player.playPlaylist(PlaylistManager.getInstance(getContext()).getLastPlaylist(),
+                            song.id);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         playlist.clear();
 
         Playlist lastPl = PlaylistManager.getInstance(getContext()).getLastPlaylist();
@@ -222,7 +239,7 @@ public class NowPlayingFrag extends Fragment {
                         if (pl != null) {
                             startIntent.setAction(Constants.PLAYER.START_SERVICE);
                             getActivity().startService(startIntent);
-                            player.playPlaylist(pl);
+                            player.playPlaylist(pl, "");
                         } else {
                             try {
                                 player.playSong(playlist.get(0));

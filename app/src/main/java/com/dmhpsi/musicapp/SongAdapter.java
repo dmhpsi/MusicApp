@@ -196,6 +196,31 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
                         }
                     });
                     menu.show();
+                } else if (listPurpose.equals(ListPurpose.PLAYLIST_SONG)) {
+                    PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
+                    menu.getMenuInflater().inflate(R.menu.pl_song_menu, menu.getMenu());
+                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            builder.setTitle("Confirm remove")
+                                    .setMessage("Do you want to remove this song from Now Playing?")
+                                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialogInterface, int i) {
+                                            if (song != null) {
+                                                remove(song);
+                                                PlaylistManager.getInstance(getContext())
+                                                        .removeSongFromLastPlaylist(song.id, getContext());
+                                                notifyDataSetChanged();
+                                            }
+                                        }
+                                    }).setNegativeButton("No", null);
+                            builder.create().show();
+                            return true;
+                        }
+                    });
+                    menu.show();
                 }
 
             }

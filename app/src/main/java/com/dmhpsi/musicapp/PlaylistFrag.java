@@ -55,7 +55,7 @@ public class PlaylistFrag extends Fragment {
                     SongItem songItem = (SongItem) view.getTag();
                     Playlist playlist = PlaylistManager.getInstance(getContext()).getPlaylist(songItem.id);
                     if (playlist.count != 0) {
-                        player.playPlaylist(playlist);
+                        player.playPlaylist(playlist, "");
                         rerender();
                         Intent startIntent = new Intent(getContext(), Player.class);
                         startIntent.setAction(Constants.PLAYER.START_SERVICE);
