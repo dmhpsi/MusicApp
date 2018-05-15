@@ -156,14 +156,6 @@ public class NowPlayingFrag extends Fragment {
             }
         });
 
-        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
-            @Override
-            public void onEvent() {
-                adapter.setSpecialItem(player.getCurrentSong());
-                adapter.notifyDataSetChanged();
-            }
-        });
-
         final ImageButton playBtn = view.findViewById(R.id.play_btn);
 
         seekerTouching = false;
@@ -196,7 +188,19 @@ public class NowPlayingFrag extends Fragment {
         } else {
             playlist.add(PlaylistManager.getInstance(getContext()).getLastSong());
         }
+        adapter.setSpecialItem(player.getCurrentSong());
         adapter.notifyDataSetChanged();
+
+        player.setOnSongChangeEventListener(new OnSongChangeEventListener() {
+            @Override
+            public void onEvent() {
+                adapter.setSpecialItem(player.getCurrentSong());
+                adapter.notifyDataSetChanged();
+                Intent startIntent = new Intent(getContext(), Player.class);
+                startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                getActivity().startService(startIntent);
+            }
+        });
 
         player.setOnStateChangeEventListener(new OnStateChangeEventListener() {
             @Override
@@ -206,6 +210,15 @@ public class NowPlayingFrag extends Fragment {
                 } else {
                     setBtn(playBtn, R.drawable.ma_ic_play, -1);
                 }
+            }
+        });
+
+        player.setOnLoadingStateChangeListener(new OnLoadingStateChangeListener() {
+            @Override
+            public void onEvent(boolean loaded) {
+                view.findViewById(R.id.play_btn).setClickable(loaded);
+                view.findViewById(R.id.next_btn).setClickable(loaded);
+                view.findViewById(R.id.prev_btn).setClickable(loaded);
             }
         });
 
@@ -294,7 +307,8 @@ public class NowPlayingFrag extends Fragment {
                                             PlaylistManager.getInstance(
                                                     getContext()).getLastPlaylist());
                                     pl.setName(input);
-                                    if (PlaylistManager.getInstance(getContext()).addPlaylist(pl, getContext()) == -1) {
+                                    if (PlaylistManager.getInstance(getContext()).addPlaylist(
+                                            new Playlist(pl), getContext()) == -1) {
                                         Toast.makeText(getContext(),
                                                 "Playlist add failed! Duplicated playlist name found",
                                                 Toast.LENGTH_LONG)

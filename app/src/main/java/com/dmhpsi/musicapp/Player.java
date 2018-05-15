@@ -26,12 +26,11 @@ interface OnStateChangeEventListener {
     void onEvent(PlayerStates state);
 }
 
-public class Player extends Service {
-    public Player() {
-        repeatState = RepeatStates.REPEAT_NONE;
-        shuffleState = ShuffleStates.SHUFFLE_OFF;
-    }
+interface OnLoadingStateChangeListener {
+    void onEvent(boolean loaded);
+}
 
+public class Player extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -135,7 +134,6 @@ public class Player extends Service {
 
     @Nullable
     private OnSongChangeEventListener onSongChangeEventListener;
-
     public void setOnSongChangeEventListener(@Nullable OnSongChangeEventListener eventListener) {
         onSongChangeEventListener = eventListener;
     }
@@ -150,13 +148,20 @@ public class Player extends Service {
     }
 
     private OnNextPrevEventListener onNextPrevEventListener;
-
     private void setOnNextPrevEventListener(OnNextPrevEventListener onNextPrevEventListener) {
         this.onNextPrevEventListener = onNextPrevEventListener;
     }
 
+    private OnLoadingStateChangeListener onLoadingStateChangeListener;
+
+    public void setOnLoadingStateChangeListener(OnLoadingStateChangeListener onLoadingStateChangeListener) {
+        this.onLoadingStateChangeListener = onLoadingStateChangeListener;
+    }
+
     public void setRepeatState(RepeatStates repeatState) {
         this.repeatState = repeatState;
+        PlaylistManager.getInstance(getApplicationContext())
+                .setRepeatState(repeatState, getApplicationContext());
     }
 
     public RepeatStates getRepeatState() {
@@ -165,6 +170,8 @@ public class Player extends Service {
 
     public void setShuffleState(ShuffleStates shuffleState) {
         this.shuffleState = shuffleState;
+        PlaylistManager.getInstance(getApplicationContext())
+                .setShuffleState(shuffleState, getApplicationContext());
     }
 
     public ShuffleStates getShuffleState() {
@@ -221,6 +228,7 @@ public class Player extends Service {
     }
 
     private void playAudio(SongItem song) {
+        onLoadingStateChangeListener.onEvent(false);
         killMediaPlayer();
         currentSong = new SongItem(song);
         if (mediaPlayer == null)
@@ -250,6 +258,7 @@ public class Player extends Service {
                 mp.start();
                 currentSongDuration = mp.getDuration();
                 onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+                onLoadingStateChangeListener.onEvent(true);
             }
         });
         PlaylistManager.getInstance(getApplicationContext()).setLastSong(song, getApplicationContext());
@@ -270,22 +279,22 @@ public class Player extends Service {
 
     public void playPlaylist(@NonNull Playlist playlist, String startId) {
         PlaylistManager pm = PlaylistManager.getInstance(getApplicationContext());
-        pm.defineLastPlaylist(playlist, getApplicationContext());
-        playAudio(pm.getPrevSongItem(pm.getNextSongItem(startId).id));
+        pm.defineLastPlaylist(new Playlist(playlist), getApplicationContext());
+        playAudio(pm.getPrevSongItem(pm.getNextSongItem(startId, false).id, false));
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                if (repeatState == RepeatStates.REPEAT_NONE) {
-                    onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
-                    mp.seekTo(0);
-                } else if (repeatState == RepeatStates.REPEAT_ONE) {
+                if (repeatState == RepeatStates.REPEAT_ONE) {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     mp.seekTo(0);
                     mp.start();
+                } else if (repeatState == RepeatStates.REPEAT_NONE) {
+                    onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
+                    mp.seekTo(0);
                 } else {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     playAudio(PlaylistManager.getInstance(getApplicationContext())
-                            .getNextSongItem(currentSong.id));
+                            .getNextSongItem(currentSong.id, shuffleState == ShuffleStates.SHUFFLE_ON));
                 }
             }
         });
@@ -295,11 +304,11 @@ public class Player extends Service {
                 if (isNext) {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     playAudio(PlaylistManager.getInstance(getApplicationContext())
-                            .getNextSongItem(currentSong.id));
+                            .getNextSongItem(currentSong.id, shuffleState == ShuffleStates.SHUFFLE_ON));
                 } else {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     playAudio(PlaylistManager.getInstance(getApplicationContext())
-                            .getPrevSongItem(currentSong.id));
+                            .getPrevSongItem(currentSong.id, shuffleState == ShuffleStates.SHUFFLE_ON));
                 }
             }
         });

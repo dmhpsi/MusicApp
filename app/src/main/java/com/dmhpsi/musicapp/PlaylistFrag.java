@@ -34,7 +34,7 @@ public class PlaylistFrag extends Fragment {
         for (int i = 0; i < playlistManager.getPlCount(); i++) {
             Playlist pl = playlistManager.getPlaylist(i);
             playlists.add(new SongItem(pl.getName(),
-                    "" + pl.count + " songs",
+                    "" + pl.count() + " songs",
                     "",
                     pl.getId()));
         }
@@ -54,7 +54,7 @@ public class PlaylistFrag extends Fragment {
                 try {
                     SongItem songItem = (SongItem) view.getTag();
                     Playlist playlist = PlaylistManager.getInstance(getContext()).getPlaylist(songItem.id);
-                    if (playlist.count != 0) {
+                    if (playlist.count() != 0) {
                         player.playPlaylist(playlist, "");
                         rerender();
                         Intent startIntent = new Intent(getContext(), Player.class);
@@ -97,10 +97,10 @@ public class PlaylistFrag extends Fragment {
                                 EditText editText = dialogView.findViewById(R.id.pl_name);
                                 String input = editText.getText().toString();
                                 if (!input.matches("")) {
-                                    Playlist pl = new Playlist(input, 0, new JSONArray());
+                                    Playlist pl = new Playlist(input, new JSONArray());
                                     if (playlistManager.addPlaylist(pl, getContext()) == -1) {
                                         Toast.makeText(getContext(),
-                                                "Playlist add failed! Duplicated playlist name found",
+                                                "Playlist add failed! Duplicate playlist name found",
                                                 Toast.LENGTH_LONG)
                                                 .show();
                                     } else {

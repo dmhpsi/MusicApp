@@ -3,15 +3,17 @@ package com.dmhpsi.musicapp;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.PopupMenu;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -20,6 +22,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Objects;
+
 
 class SongItem {
     String songName = "", artist = "", duration = "", id = "";
@@ -103,7 +106,7 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
     private ListPurpose listPurpose;
     private SongItem specialItem;
 
-    SongAdapter(Context context, ArrayList<SongItem> songList, ListPurpose listPurpose) {
+    SongAdapter(Context context, ArrayList<SongItem> songList, @Nullable ListPurpose listPurpose) {
         super(context, 0, songList);
         this.listPurpose = listPurpose;
     }
@@ -139,92 +142,113 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
         }
 
         ImageButton btn = convertView.findViewById(R.id.more_btn);
-        btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (listPurpose == ListPurpose.ALL_SONG) {
-                    PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
-                    menu.getMenuInflater().inflate(R.menu.song_list_menu, menu.getMenu());
-                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            if (menuItem.getItemId() == R.id.details) {
-                                builder.setTitle("Details");
-                            } else {
-                                builder.setTitle("Add song to ...")
-                                        .setItems(PlaylistManager.getInstance(getContext()).getPlNames(), new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialogInterface, int i) {
-                                                Playlist pl = PlaylistManager.getInstance(getContext()).getPlaylist(i - 1);
-                                                Log.e("pl", pl.toString());
-                                                PlaylistManager.getInstance(getContext()).addSong(pl.getId(), song, getContext());
-                                            }
-                                        });
+        if (listPurpose != null) {
+            btn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (listPurpose == ListPurpose.ALL_SONG) {
+                        PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
+                        menu.getMenuInflater().inflate(R.menu.song_list_menu, menu.getMenu());
+                        menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem menuItem) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                if (menuItem.getItemId() == R.id.details) {
+                                    builder.setTitle("Details");
+                                } else {
+                                    builder.setTitle("Add song to ...")
+                                            .setItems(PlaylistManager.getInstance(getContext()).getPlNames(), new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialogInterface, int i) {
+                                                    Playlist pl = PlaylistManager.getInstance(getContext()).getPlaylist(i - 1);
+                                                    PlaylistManager.getInstance(getContext()).addSong(pl.getId(), song, getContext());
+                                                }
+                                            });
+                                }
+                                builder.create().show();
+                                return true;
                             }
-                            builder.create().show();
-                            return true;
-                        }
-                    });
-                    menu.show();
-                } else if (listPurpose == ListPurpose.PLAYLIST) {
-                    PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
-                    menu.getMenuInflater().inflate(R.menu.playlist_menu, menu.getMenu());
-                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem item) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            if (item.getItemId() == R.id.manage) {
-
-                            } else {
-                                builder.setTitle("Confirm delete")
-                                        .setMessage("Do you want to delete this playlist?")
+                        });
+                        menu.show();
+                    } else if (listPurpose == ListPurpose.PLAYLIST) {
+                        PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
+                        menu.getMenuInflater().inflate(R.menu.playlist_menu, menu.getMenu());
+                        menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem item) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                if (item.getItemId() == R.id.manage) {
+                                    Intent intent = new Intent(getContext(), EditPlaylistActivity.class);
+                                    if (song != null) {
+                                        intent.putExtra(Constants.ACTIVITY_MESSAGE.PLAYLIST_TO_EDIT, song.id);
+                                        getContext().startActivity(intent);
+                                    }
+                                } else if (item.getItemId() == R.id.rename) {
+                                    final EditText inputName = new EditText(getContext());
+                                    builder.setTitle("Rename playlist");
+                                    builder.setView(inputName);
+                                    builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialogdialogInterface, int i) {
+                                            if (song != null) {
+                                                song.songName = String.valueOf(inputName.getText());
+                                                notifyDataSetChanged();
+                                            }
+                                        }
+                                    });
+                                    builder.setNegativeButton("Cancel", null);
+                                    builder.create().show();
+                                } else {
+                                    builder.setTitle("Confirm delete")
+                                            .setMessage("Do you want to delete this playlist?")
+                                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialogInterface, int i) {
+                                                    if (song != null) {
+                                                        PlaylistManager.getInstance(getContext())
+                                                                .removePlaylist(Objects.requireNonNull(song).id, getContext());
+                                                        remove(song);
+                                                        notifyDataSetChanged();
+                                                    }
+                                                }
+                                            }).setNegativeButton("No", null);
+                                    builder.create().show();
+                                }
+                                return true;
+                            }
+                        });
+                        menu.show();
+                    } else if (listPurpose.equals(ListPurpose.PLAYLIST_SONG)) {
+                        PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
+                        menu.getMenuInflater().inflate(R.menu.pl_song_menu, menu.getMenu());
+                        menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem item) {
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                                builder.setTitle("Confirm remove")
+                                        .setMessage("Do you want to remove this song from Now Playing?")
                                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialogInterface, int i) {
                                                 if (song != null) {
-                                                    PlaylistManager.getInstance(getContext())
-                                                            .removePlaylist(Objects.requireNonNull(song).id, getContext());
                                                     remove(song);
+                                                    PlaylistManager.getInstance(getContext())
+                                                            .removeSongFromLastPlaylist(song.id, getContext());
                                                     notifyDataSetChanged();
                                                 }
                                             }
                                         }).setNegativeButton("No", null);
                                 builder.create().show();
+                                return true;
                             }
-                            return true;
-                        }
-                    });
-                    menu.show();
-                } else if (listPurpose.equals(ListPurpose.PLAYLIST_SONG)) {
-                    PopupMenu menu = new PopupMenu(getContext(), view, Gravity.END);
-                    menu.getMenuInflater().inflate(R.menu.pl_song_menu, menu.getMenu());
-                    menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem item) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            builder.setTitle("Confirm remove")
-                                    .setMessage("Do you want to remove this song from Now Playing?")
-                                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialogInterface, int i) {
-                                            if (song != null) {
-                                                remove(song);
-                                                PlaylistManager.getInstance(getContext())
-                                                        .removeSongFromLastPlaylist(song.id, getContext());
-                                                notifyDataSetChanged();
-                                            }
-                                        }
-                                    }).setNegativeButton("No", null);
-                            builder.create().show();
-                            return true;
-                        }
-                    });
-                    menu.show();
+                        });
+                        menu.show();
+                    }
                 }
-
-            }
-        });
+            });
+        } else {
+            btn.setVisibility(View.GONE);
+        }
         return convertView;
     }
 }

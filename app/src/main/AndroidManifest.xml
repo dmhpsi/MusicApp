@@ -15,9 +15,13 @@
             android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".EditPlaylistActivity"
+            android:parentActivityName=".main">
+
         </activity>
         <service android:name=".Player" />
     </application>

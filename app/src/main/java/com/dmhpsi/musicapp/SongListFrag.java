@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -102,7 +103,7 @@ public class SongListFrag extends Fragment {
         songAdapter.notifyDataSetChanged();
     }
     public void displayError() {
-        //Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
     }
 
 

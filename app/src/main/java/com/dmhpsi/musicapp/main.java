@@ -23,12 +23,19 @@ public class main extends AppCompatActivity {
             Player.LocalBinder binder = (Player.LocalBinder) service;
             player = binder.getService();
             isBound = true;
+            player.setShuffleState(
+                    PlaylistManager.getInstance(getApplicationContext()).getShuffleState());
+            player.setRepeatState(
+                    PlaylistManager.getInstance(getApplicationContext()).getRepeatState());
 
             TabLayout tabLayout = findViewById(R.id.tab_layout);
             ViewPager viewPager = findViewById(R.id.pager);
-            PagerAdapter adapter = new PagerAdapter(getSupportFragmentManager(), tabLayout.getTabCount(), player);
+            PagerAdapter adapter = new PagerAdapter(getSupportFragmentManager(),
+                    tabLayout.getTabCount(),
+                    player);
             viewPager.setAdapter(adapter);
-            viewPager.setCurrentItem(1);
+            viewPager.setCurrentItem(
+                    PlaylistManager.getInstance(getApplicationContext()).getLastPageIdx());
             viewPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(tabLayout));
         }
 
@@ -84,6 +91,8 @@ public class main extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 viewPager.setCurrentItem(tab.getPosition());
+                PlaylistManager.getInstance(
+                        getApplicationContext()).setLastPageIdx(tab.getPosition());
             }
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {

@@ -34,4 +34,8 @@ public class Constants {
     public interface NOTIFICATION_ID {
         int FOREGROUND_SERVICE = 101;
     }
+
+    public interface ACTIVITY_MESSAGE {
+        String PLAYLIST_TO_EDIT = "pl to edit";
+    }
 }
