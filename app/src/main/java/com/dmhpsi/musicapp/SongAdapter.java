@@ -1,11 +1,12 @@
 package com.dmhpsi.musicapp;
 
-import android.app.AlertDialog;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.PopupMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -13,7 +14,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -153,18 +153,14 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                if (menuItem.getItemId() == R.id.details) {
-                                    builder.setTitle("Details");
-                                } else {
-                                    builder.setTitle("Add song to ...")
-                                            .setItems(PlaylistManager.getInstance(getContext()).getPlNames(), new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialogInterface, int i) {
-                                                    Playlist pl = PlaylistManager.getInstance(getContext()).getPlaylist(i - 1);
-                                                    PlaylistManager.getInstance(getContext()).addSong(pl.getId(), song, getContext());
-                                                }
-                                            });
-                                }
+                                builder.setTitle("Add song to ...")
+                                        .setItems(PlaylistManager.getInstance(getContext()).getPlNames(), new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialogInterface, int i) {
+                                                Playlist pl = PlaylistManager.getInstance(getContext()).getPlaylist(i - 1);
+                                                PlaylistManager.getInstance(getContext()).addSong(pl.getId(), song, getContext());
+                                            }
+                                        });
                                 builder.create().show();
                                 return true;
                             }
@@ -184,14 +180,16 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
                                         getContext().startActivity(intent);
                                     }
                                 } else if (item.getItemId() == R.id.rename) {
-                                    final EditText inputName = new EditText(getContext());
+                                    LayoutInflater inflater = ((Activity) getContext()).getLayoutInflater();
+                                    final View inputName = inflater.inflate(R.layout.add_playlist, null);
                                     builder.setTitle("Rename playlist");
                                     builder.setView(inputName);
                                     builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialogdialogInterface, int i) {
                                             if (song != null) {
-                                                song.songName = String.valueOf(inputName.getText());
+                                                TextView tv = inputName.findViewById(R.id.pl_name);
+                                                song.songName = String.valueOf(tv.getText());
                                                 notifyDataSetChanged();
                                             }
                                         }

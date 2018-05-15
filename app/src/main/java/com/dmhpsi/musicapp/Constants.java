@@ -19,8 +19,9 @@ enum ListPurpose {
 public class Constants {
     public interface URL {
         String HOST = "darkha.pythonanywhere.com";
-        String GET_INFO = "http://" + HOST + "/getinfo/";
+        String GET_INFO = "http://" + HOST + "/getmp3info/?pg=";
         String GET_MP3 = "http://" + HOST + "/getmp3/?id=";
+        int PAGE_SIZE = 7;
     }
 
     public interface PLAYER {

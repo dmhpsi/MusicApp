@@ -301,6 +301,12 @@ public class Player extends Service {
         setOnNextPrevEventListener(new OnNextPrevEventListener() {
             @Override
             public void onEvent(boolean isNext) {
+                if (repeatState == RepeatStates.REPEAT_ONE) {
+                    onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
+                    mediaPlayer.seekTo(0);
+                    mediaPlayer.start();
+                    return;
+                }
                 if (isNext) {
                     onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
                     playAudio(PlaylistManager.getInstance(getApplicationContext())

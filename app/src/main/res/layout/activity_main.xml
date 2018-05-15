@@ -7,27 +7,25 @@
     android:layout_height="match_parent"
     tools:context=".main">
 
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/colorPrimary"
-        android:minHeight="0dp"
-        android:theme="?attr/actionBarTabTextStyle"
-        app:titleTextColor="#FFF"
-        app:navigationIcon="@drawable/ma_ic_menu">
+    <!--<android.support.v7.widget.Toolbar-->
+    <!--android:id="@+id/toolbar"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:background="@color/colorPrimary"-->
+    <!--android:minHeight="0dp"-->
+    <!--android:theme="?attr/actionBarTabTextStyle"-->
+    <!--app:titleTextColor="#FFF"-->
+    <!--app:navigationIcon="@drawable/ma_ic_menu">-->
 
-    </android.support.v7.widget.Toolbar>
+    <!--</android.support.v7.widget.Toolbar>-->
 
     <android.support.design.widget.TabLayout
         android:id="@+id/tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorPrimary"
-        android:minHeight="?attr/actionBarSize"
-        android:layout_below="@+id/toolbar"
-        app:tabIndicatorColor="@color/colorPrimaryLight"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:tabIndicatorColor="@color/colorPrimaryLight" />
 
 
     <android.support.v4.view.ViewPager

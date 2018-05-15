@@ -4,7 +4,7 @@
     <item
         android:id="@+id/add_to"
         android:title="Add to ..." />
-    <item
-        android:id="@+id/details"
-        android:title="Details" />
+    <!--<item-->
+    <!--android:id="@+id/details"-->
+    <!--android:title="Details" />-->
 </menu>
