@@ -67,4 +67,11 @@ public class EditPlaylistActivity extends Activity {
         });
     }
 
+    @Override
+    public void onBackPressed() {
+        EditPlaylistActivity.this.finish();
+        Intent intent = new Intent(EditPlaylistActivity.this, main.class);
+        (EditPlaylistActivity.this).startActivity(intent);
+        super.onBackPressed();
+    }
 }

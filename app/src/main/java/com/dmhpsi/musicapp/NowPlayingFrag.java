@@ -250,16 +250,10 @@ public class NowPlayingFrag extends Fragment {
                     } else {
                         Playlist pl = PlaylistManager.getInstance(getContext()).getLastPlaylist();
                         if (pl != null) {
-                            startIntent.setAction(Constants.PLAYER.START_SERVICE);
-                            getActivity().startService(startIntent);
-                            player.playPlaylist(pl, "");
-                        } else {
-                            try {
-                                player.playSong(playlist.get(0));
+                            if (pl.getSongs().size() > 0) {
                                 startIntent.setAction(Constants.PLAYER.START_SERVICE);
                                 getActivity().startService(startIntent);
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                player.playPlaylist(pl, "");
                             }
                         }
                     }

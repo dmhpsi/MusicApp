@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Random;
@@ -27,9 +28,34 @@ interface OnLastPlaylistChangedListener {
 }
 
 class Playlist {
+    Playlist(JSONObject object) {
+        try {
+            songs = new JSONArray();
+            name = object.getString("name");
+            id = object.getString("id");
+            songs = object.getJSONArray("songs");
+            sortSongs();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
     private String name, id;
     private JSONArray songs;
     private ArrayList<Integer> shuffleList;
+
+    Playlist(Playlist pl) {
+        if (pl != null) {
+            this.id = pl.id;
+            this.name = pl.name;
+            try {
+                this.songs = new JSONArray(pl.songs.toString());
+                sortSongs();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            this.shuffle();
+        }
+    }
 
     public int count() {
         if (songs != null)
@@ -38,13 +64,49 @@ class Playlist {
             return 0;
     }
 
+    Playlist(String name, JSONArray songs) {
+        this.name = name;
+        try {
+            this.songs = new JSONArray(songs.toString());
+            sortSongs();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        this.shuffle();
+    }
+
+    Playlist(String name, @Nullable SongItem song) {
+        this.name = name;
+        this.songs = new JSONArray();
+        if (song != null) {
+            this.songs.put(song.toJSONObject());
+        }
+        this.shuffle();
+    }
+
+    private void sortSongs() {
+        int c = count();
+        ArrayList<JSONObject> s = new ArrayList<>();
+        for (int i = 0; i < c; i++) {
+            try {
+                s.add(songs.getJSONObject(i));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        Collections.sort(s, new SongJsonSort());
+        songs = new JSONArray();
+        for (int i = 0; i < c; i++) {
+            songs.put(s.get(i));
+        }
+    }
+
     private void shuffle() {
         shuffleList = new ArrayList<>();
-        int count = songs.length();
-        if (count > 0) {
+        if (count() > 0) {
             Random random = new Random();
             random.nextInt();
-            for (int i = 0; i < count; i++) {
+            for (int i = 0; i < count(); i++) {
                 shuffleList.add(i);
             }
             Collections.shuffle(shuffleList);
@@ -53,8 +115,7 @@ class Playlist {
     }
 
     int addSong(SongItem song) {
-        int count = songs.length();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < count(); i++) {
             try {
                 if (songs.getJSONObject(i).getString("id").equals(song.id)) {
                     return -1;
@@ -66,81 +127,6 @@ class Playlist {
         songs.put(song.toJSONObject());
         shuffle();
         return 0;
-    }
-
-    void removeSong(SongItem song) {
-        int count = songs.length();
-        for (int i = 0; i < count; i++) {
-            try {
-                if (songs.getJSONObject(i).getString("id").equals(song.id)) {
-                    songs.remove(i);
-                    count--;
-                    shuffle();
-                    return;
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    void removeSong(String songId) {
-        try {
-            int count = songs.length();
-            for (int i = 0; i < count; i++) {
-                JSONObject song = songs.getJSONObject(i);
-                if (song.getString("id").equals(songId)) {
-                    songs.remove(i);
-                    shuffle();
-                    return;
-                }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @NonNull
-    ArrayList<SongItem> getSongs() {
-        ArrayList<SongItem> songItems = new ArrayList<>();
-        try {
-            int count = songs.length();
-            for (int i = 0; i < count; i++) {
-                JSONObject song = songs.getJSONObject(i);
-                songItems.add(new SongItem(song));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return songItems;
-    }
-
-    SongItem getSong(String songId) {
-        try {
-            int count = songs.length();
-            for (int i = 0; i < count; i++) {
-                JSONObject song = songs.getJSONObject(i);
-                if (song.getString("id").equals(songId)) {
-                    return new SongItem(song);
-                }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    SongItem getSong(int id) {
-        if (songs.isNull(id)) {
-            return null;
-        } else {
-            try {
-                return new SongItem(songs.getJSONObject(id));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        return null;
     }
 
     public void setId(String id) {
@@ -159,27 +145,19 @@ class Playlist {
         return name;
     }
 
-    SongItem getNextSongOf(String songId, boolean random) {
-        try {
-            int count = songs.length();
-            for (int i = 0; i < count; i++) {
-                JSONObject song = songs.getJSONObject(i);
-                if (song.getString("id").equals(songId)) {
-                    if (random) {
-                        return new SongItem(songs.getJSONObject(shuffleList.get(shuffleList.indexOf(i) + 1)));
-                    }
-                    if (i < count - 1) {
-                        return new SongItem(songs.getJSONObject(i + 1));
-                    } else {
-                        return new SongItem(songs.getJSONObject(0));
-                    }
+    void removeSong(SongItem song) {
+        for (int i = 0; i < count(); i++) {
+            try {
+                if (songs.getJSONObject(i).getString("id").equals(song.id)) {
+                    songs.remove(i);
+                    sortSongs();
+                    shuffle();
+                    return;
                 }
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
-            return new SongItem(songs.getJSONObject(0));
-        } catch (JSONException e) {
-            e.printStackTrace();
         }
-        return null;
     }
 
     public SongItem getPrevSongOf(String songId, boolean random) {
@@ -205,45 +183,68 @@ class Playlist {
         return null;
     }
 
-    Playlist(JSONObject object) {
+    void removeSong(String songId) {
         try {
-            songs = new JSONArray();
-            name = object.getString("name");
-            id = object.getString("id");
-            songs = object.getJSONArray("songs");
+            for (int i = 0; i < count(); i++) {
+                JSONObject song = songs.getJSONObject(i);
+                if (song.getString("id").equals(songId)) {
+                    songs.remove(i);
+                    sortSongs();
+                    shuffle();
+                    return;
+                }
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-    Playlist(Playlist pl) {
-        if (pl != null) {
-            this.id = pl.id;
-            this.name = pl.name;
+    @NonNull
+    ArrayList<SongItem> getSongs() {
+        ArrayList<SongItem> songItems = new ArrayList<>();
+        try {
+            for (int i = 0; i < count(); i++) {
+                JSONObject song = songs.getJSONObject(i);
+                songItems.add(new SongItem(song));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return songItems;
+    }
+
+    SongItem getNextSongOf(String songId, boolean random) {
+        try {
+            for (int i = 0; i < count(); i++) {
+                JSONObject song = songs.getJSONObject(i);
+                if (song.getString("id").equals(songId)) {
+                    if (random) {
+                        return new SongItem(songs.getJSONObject(shuffleList.get(shuffleList.indexOf(i) + 1)));
+                    }
+                    if (i < count() - 1) {
+                        return new SongItem(songs.getJSONObject(i + 1));
+                    } else {
+                        return new SongItem(songs.getJSONObject(0));
+                    }
+                }
+            }
+            return new SongItem(songs.getJSONObject(0));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    class SongJsonSort implements Comparator<JSONObject> {
+        @Override
+        public int compare(JSONObject object, JSONObject t1) {
             try {
-                this.songs = new JSONArray(pl.songs.toString());
+                return object.getString("name").compareToIgnoreCase(t1.getString("name"));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            this.shuffle();
+            return 0;
         }
-    }
-
-    Playlist(String name, JSONArray songs) {
-        this.name = name;
-        try {
-            this.songs = new JSONArray(songs.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        this.shuffle();
-    }
-
-    Playlist(String name, SongItem song) {
-        this.name = name;
-        this.songs = new JSONArray();
-        this.songs.put(song.toJSONObject());
-        this.shuffle();
     }
 
     @Override
@@ -256,6 +257,55 @@ class Playlist {
 }
 
 public class PlaylistManager {
+    private PlaylistManager(Context context) {
+        FileInputStream inputStream;
+        playlists = new ArrayList<>();
+        try {
+            inputStream = context.openFileInput("mafile_" + key);
+            int length = inputStream.available();
+            byte bytes[] = new byte[length];
+            inputStream.read(bytes);
+            JSONObject data = new JSONObject(new String(bytes));
+            Log.e("File", data.toString(4));
+            plCount = data.getInt("count");
+            if (data.isNull("lastPl")) {
+                lastPl = null;
+            } else {
+                lastPl = new Playlist(data.getJSONObject("lastPl"));
+            }
+            if (data.isNull("lastSong")) {
+                lastSong = null;
+            } else {
+                lastSong = new SongItem(data.getJSONObject("lastSong"));
+            }
+            JSONArray array = data.getJSONArray("data");
+            for (int i = 0; i < plCount; i++) {
+                playlists.add(new Playlist(array.getJSONObject(i)));
+            }
+            Collections.sort(playlists, new PlaylistCompare());
+            if (data.isNull("repeatState")) {
+                repeatState = RepeatStates.REPEAT_ALL;
+            } else {
+                repeatState = RepeatStates.valueOf(data.getString("repeatState"));
+            }
+            if (data.isNull("shuffleState")) {
+                shuffleState = ShuffleStates.SHUFFLE_OFF;
+            } else {
+                shuffleState = ShuffleStates.valueOf(data.getString("shuffleState"));
+            }
+            Log.e("state", "" + shuffleState + " " + repeatState);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("Playlist manager", "File not found");
+            plCount = 0;
+            repeatState = RepeatStates.REPEAT_ALL;
+            shuffleState = ShuffleStates.SHUFFLE_OFF;
+            lastPl = null;
+            lastSong = null;
+            save(context);
+        }
+    }
+
     private final String key = "pl";
     private final String LASTPLID = "lastplid";
     private int plCount;
@@ -313,52 +363,19 @@ public class PlaylistManager {
         return (INSTANCE);
     }
 
-    private PlaylistManager(Context context) {
-        FileInputStream inputStream;
-        playlists = new ArrayList<>();
-        try {
-            inputStream = context.openFileInput("mafile_" + key);
-            int length = inputStream.available();
-            byte bytes[] = new byte[length];
-            inputStream.read(bytes);
-            JSONObject data = new JSONObject(new String(bytes));
-            Log.e("File", data.toString(4));
-            plCount = data.getInt("count");
-            if (data.isNull("lastPl")) {
-                lastPl = null;
-            } else {
-                lastPl = new Playlist(data.getJSONObject("lastPl"));
+    public int addPlaylist(Playlist playlist, Context context) {
+        Playlist __pl = new Playlist(playlist);
+        for (Playlist pl : playlists) {
+            if (Objects.equals(__pl.getName(), pl.getName())) {
+                return -1;
             }
-            if (data.isNull("lastSong")) {
-                lastSong = null;
-            } else {
-                lastSong = new SongItem(data.getJSONObject("lastSong"));
-            }
-            JSONArray array = data.getJSONArray("data");
-            for (int i = 0; i < plCount; i++) {
-                playlists.add(new Playlist(array.getJSONObject(i)));
-            }
-            if (data.isNull("repeatState")) {
-                repeatState = RepeatStates.REPEAT_ALL;
-            } else {
-                repeatState = RepeatStates.valueOf(data.getString("repeatState"));
-            }
-            if (data.isNull("shuffleState")) {
-                shuffleState = ShuffleStates.SHUFFLE_OFF;
-            } else {
-                shuffleState = ShuffleStates.valueOf(data.getString("shuffleState"));
-            }
-            Log.e("state", "" + shuffleState + " " + repeatState);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("Playlist manager", "File not found");
-            plCount = 0;
-            repeatState = RepeatStates.REPEAT_ALL;
-            shuffleState = ShuffleStates.SHUFFLE_OFF;
-            lastPl = null;
-            lastSong = null;
-            save(context);
         }
+        plCount++;
+        __pl.setId(String.valueOf(new Date().getTime()));
+        playlists.add(__pl);
+        Collections.sort(playlists, new PlaylistCompare());
+        save(context);
+        return 1;
     }
 
     private void save(Context context) {
@@ -389,28 +406,27 @@ public class PlaylistManager {
         }
     }
 
-    public int addPlaylist(Playlist playlist, Context context) {
-        Playlist __pl = new Playlist(playlist);
-        for (Playlist pl : playlists) {
-            if (Objects.equals(__pl.getName(), pl.getName())) {
-                return -1;
-            }
-        }
-        plCount++;
-        __pl.setId(String.valueOf(new Date().getTime()));
-        playlists.add(__pl);
-        save(context);
-        return 1;
-    }
-
     public void removePlaylist(String plId, Context context) {
         for (int i = 0; i < plCount; i++) {
             if (playlists.get(i).getId().equals(plId)) {
                 playlists.remove(i);
                 plCount--;
+                Collections.sort(playlists, new PlaylistCompare());
                 save(context);
                 return;
             }
+        }
+    }
+
+    public Playlist getPlaylist(int index) {
+        if (index < 0) {
+            if (lastPl == null) {
+                lastPl = new Playlist("", (SongItem) null);
+                lastPl.setId(LASTPLID);
+            }
+            return new Playlist(lastPl);
+        } else {
+            return new Playlist(playlists.get(index));
         }
     }
 
@@ -432,11 +448,30 @@ public class PlaylistManager {
         return playlists;
     }
 
-    public Playlist getPlaylist(int index) {
-        if (index < 0) {
-            return new Playlist(lastPl);
+    public void addSong(String playlistid, SongItem song, Context context) {
+        if (Objects.equals(playlistid, LASTPLID)) {
+            if (lastPl == null) {
+                lastPl = new Playlist("", song);
+            } else {
+                lastPl.addSong(song);
+            }
+            if (onLastPlaylistChangedListener != null) {
+                onLastPlaylistChangedListener.onEvent();
+            }
+            save(context);
+            Toast.makeText(context, "Song added successfully!", Toast.LENGTH_SHORT).show();
         } else {
-            return new Playlist(playlists.get(index));
+            for (Playlist playlist : playlists) {
+                if (playlist.getId().equals(playlistid)) {
+                    if (playlist.addSong(new SongItem(song)) == -1) {
+                        Toast.makeText(context, "Song add failed! Song already added!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(context, "Song added successfully!", Toast.LENGTH_SHORT).show();
+                        save(context);
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -489,31 +524,13 @@ public class PlaylistManager {
         return lastPl.getPrevSongOf(songId, random);
     }
 
-    public SongItem getSongItemById(String plId, String songId) {
-        return Objects.requireNonNull(getPlaylist(plId)).getSong(songId);
-    }
-
-    public void addSong(String playlistid, SongItem song, Context context) {
-        Playlist target = null;
-        if (Objects.equals(playlistid, LASTPLID)) {
-            target = lastPl;
-        } else {
-            for (Playlist playlist : playlists) {
-                if (playlist.getId().equals(playlistid)) {
-                    target = playlist;
-                    break;
-                }
+    public void renamePlaylist(String plId, String newName, Context context) {
+        for (Playlist pl : playlists) {
+            if (pl.getId().equals(plId)) {
+                pl.setName(newName);
+                save(context);
+                return;
             }
-        }
-        if (target == null || target.addSong(new SongItem(song)) == -1) {
-            Toast.makeText(context, "Song add failed! Song already added!", Toast.LENGTH_SHORT).show();
-        } else {
-            Log.e("targetid", target.getId());
-            save(context);
-            Toast.makeText(context, "Song added successfully!", Toast.LENGTH_SHORT).show();
-        }
-        if (onLastPlaylistChangedListener != null) {
-            onLastPlaylistChangedListener.onEvent();
         }
     }
 
@@ -524,6 +541,13 @@ public class PlaylistManager {
                 save(context);
                 return;
             }
+        }
+    }
+
+    class PlaylistCompare implements Comparator<Playlist> {
+        @Override
+        public int compare(Playlist playlist, Playlist t1) {
+            return playlist.getName().compareToIgnoreCase(t1.getName());
         }
     }
 }

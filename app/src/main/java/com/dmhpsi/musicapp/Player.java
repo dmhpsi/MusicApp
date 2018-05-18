@@ -124,8 +124,8 @@ public class Player extends Service {
     private MediaPlayer mediaPlayer;
     private SongItem currentSong;
     private int currentSongDuration, bufferProgress;
-    private RepeatStates repeatState;
-    private ShuffleStates shuffleState;
+    private RepeatStates repeatState = RepeatStates.REPEAT_ALL;
+    private ShuffleStates shuffleState = ShuffleStates.SHUFFLE_OFF;
 
     private OnBufferUpdateEventListener onBufferUpdateEventListener;
     public void setOnBufferUpdateEventListener(OnBufferUpdateEventListener eventListener) {
@@ -280,7 +280,7 @@ public class Player extends Service {
     public void playPlaylist(@NonNull Playlist playlist, String startId) {
         PlaylistManager pm = PlaylistManager.getInstance(getApplicationContext());
         pm.defineLastPlaylist(new Playlist(playlist), getApplicationContext());
-        playAudio(pm.getPrevSongItem(pm.getNextSongItem(startId, false).id, false));
+        playAudio(pm.getNextSongItem(startId, false));
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
@@ -316,34 +316,6 @@ public class Player extends Service {
                     playAudio(PlaylistManager.getInstance(getApplicationContext())
                             .getPrevSongItem(currentSong.id, shuffleState == ShuffleStates.SHUFFLE_ON));
                 }
-            }
-        });
-    }
-
-    public void playSong(@NonNull final SongItem song) {
-        Playlist pl = new Playlist("", song);
-        PlaylistManager.getInstance(getApplicationContext())
-                .defineLastPlaylist(pl, getApplicationContext());
-        playAudio(song);
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                if (repeatState == RepeatStates.REPEAT_NONE || repeatState == RepeatStates.REPEAT_ALL) {
-                    onStateChangeEventListener.onEvent(PlayerStates.STOPPED);
-                    mp.seekTo(0);
-                } else {
-                    onStateChangeEventListener.onEvent(PlayerStates.PLAYING);
-                    PlaylistManager.getInstance(getApplicationContext())
-                            .defineLastPlaylist(null, getApplicationContext());
-                    playAudio(song);
-                }
-            }
-        });
-
-        setOnNextPrevEventListener(new OnNextPrevEventListener() {
-            @Override
-            public void onEvent(boolean isNext) {
-                mediaPlayer.seekTo(0);
             }
         });
     }

@@ -21,7 +21,7 @@ public class Constants {
         String HOST = "darkha.pythonanywhere.com";
         String GET_INFO = "http://" + HOST + "/getmp3info/?pg=";
         String GET_MP3 = "http://" + HOST + "/getmp3/?id=";
-        int PAGE_SIZE = 7;
+        int PAGE_SIZE = 20;
     }
 
     public interface PLAYER {

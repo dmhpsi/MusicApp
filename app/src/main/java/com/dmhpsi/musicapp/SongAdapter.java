@@ -190,6 +190,8 @@ public class SongAdapter extends ArrayAdapter <SongItem> {
                                             if (song != null) {
                                                 TextView tv = inputName.findViewById(R.id.pl_name);
                                                 song.songName = String.valueOf(tv.getText());
+                                                PlaylistManager.getInstance(getContext())
+                                                        .renamePlaylist(song.id, song.songName, getContext());
                                                 notifyDataSetChanged();
                                             }
                                         }

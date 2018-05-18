@@ -35,7 +35,7 @@ public class SongListFrag extends Fragment {
     SongList songList;
     private SongAdapter songAdapter;
     Player player;
-    int page, totalpg;
+    int page, totalpg = -1;
     String path;
 
     public void setPlayer(Player player) {
@@ -56,13 +56,133 @@ public class SongListFrag extends Fragment {
         }
     }
 
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        final View v = inflater.inflate(R.layout.song_list_frag, container, false);
+        page = 0;
+        path = "";
+        songList = new SongList();
+        songAdapter = new SongAdapter(getActivity(), songList.getList(), ListPurpose.ALL_SONG);
+        ListView songListView = v.findViewById(R.id.song_list);
+        songListView.setAdapter(songAdapter);
+        songListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
+                SongItem song = songList.get(i);
+                try {
+                    Intent startIntent = new Intent(getContext(), Player.class);
+                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
+                    getActivity().startService(startIntent);
+                    player.playPlaylist(new Playlist("", song), "");
+                    ViewPager viewPager = getActivity().findViewById(R.id.pager);
+                    viewPager.setCurrentItem(1);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        GetDataTask g = new GetDataTask();
+
+        SwipeRefreshLayout refreshLayout =  v.findViewById(R.id.refresh);
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                GetDataTask g = new GetDataTask();
+                g.execute(path, v);
+            }
+        });
+
+        g.execute(path, v);
+
+        SearchView searchView = v.findViewById(R.id.search);
+        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null && !b) {
+                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                }
+            }
+        });
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                GetDataTask g = new GetDataTask();
+                try {
+                    page = 0;
+                    path = "query=" + URLEncoder.encode(newText, "utf-8");
+                    g.execute(path, v);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                return false;
+            }
+        });
+
+        v.findViewById(R.id.prev_page).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (page > 0) {
+                    page--;
+                    GetDataTask g = new GetDataTask();
+                    g.execute(path, v);
+                }
+            }
+        });
+        v.findViewById(R.id.next_page).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (page < totalpg) {
+                    page++;
+                    GetDataTask g = new GetDataTask();
+                    g.execute(path, v);
+                }
+            }
+        });
+        v.findViewById(R.id.page).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final NumberPicker numberPicker = new NumberPicker(getContext());
+                numberPicker.setMinValue(1);
+                numberPicker.setMaxValue(totalpg + 1);
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Select page")
+                        .setView(numberPicker)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                page = numberPicker.getValue() - 1;
+                                GetDataTask g = new GetDataTask();
+                                g.execute(path, v);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .create().show();
+            }
+        });
+        return v;
+    }
+
+    public void rerender() {
+        songAdapter.notifyDataSetChanged();
+    }
+
+    public void displayError() {
+        Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
+    }
+
     class GetDataTask extends AsyncTask<Object, Void, Wrapper> {
         @Override
         protected Wrapper doInBackground(Object... objs) {
             URLConnection urlConn;
             BufferedReader bufferedReader = null;
 
-            View v = (View)objs[1];
+            View v = (View) objs[1];
             final SwipeRefreshLayout rf = v.findViewById(R.id.refresh);
             try {
                 getActivity().runOnUiThread(new Runnable() {
@@ -118,6 +238,16 @@ public class SongListFrag extends Fragment {
                         page = (totalpg - 1) / Constants.URL.PAGE_SIZE;
                     }
                 }
+                if (page <= 0) {
+                    response.view.findViewById(R.id.prev_page).setVisibility(View.INVISIBLE);
+                } else {
+                    response.view.findViewById(R.id.prev_page).setVisibility(View.VISIBLE);
+                }
+                if (page >= totalpg) {
+                    response.view.findViewById(R.id.next_page).setVisibility(View.INVISIBLE);
+                } else {
+                    response.view.findViewById(R.id.next_page).setVisibility(View.VISIBLE);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 displayError();
@@ -125,122 +255,5 @@ public class SongListFrag extends Fragment {
             SwipeRefreshLayout rf = response.view.findViewById(R.id.refresh);
             rf.setRefreshing(false);
         }
-    }
-
-
-    public void rerender() {
-        songAdapter.notifyDataSetChanged();
-    }
-    public void displayError() {
-        Toast.makeText(getContext(), "Network error!", Toast.LENGTH_SHORT).show();
-    }
-
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        final View v = inflater.inflate(R.layout.song_list_frag, container, false);
-        page = 0;
-        path = "";
-        songList = new SongList();
-        songAdapter = new SongAdapter(getActivity(), songList.getList(), ListPurpose.ALL_SONG);
-        ListView songListView = v.findViewById(R.id.song_list);
-        songListView.setAdapter(songAdapter);
-        songListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l) {
-                SongItem song = songList.get(i);
-                try {
-                    Intent startIntent = new Intent(getContext(), Player.class);
-                    startIntent.setAction(Constants.PLAYER.START_SERVICE);
-                    getActivity().startService(startIntent);
-                    player.playSong(song);
-                    ViewPager viewPager = getActivity().findViewById(R.id.pager);
-                    viewPager.setCurrentItem(1);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        GetDataTask g = new GetDataTask();
-
-        SwipeRefreshLayout refreshLayout =  v.findViewById(R.id.refresh);
-        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                GetDataTask g = new GetDataTask();
-                g.execute(path, v);
-            }
-        });
-
-        g.execute(path, v);
-
-        SearchView searchView = v.findViewById(R.id.search);
-        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
-                InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null && !b) {
-                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                }
-            }
-        });
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                GetDataTask g = new GetDataTask();
-                try {
-                    page = 0;
-                    path = "query=" + URLEncoder.encode(newText, "utf-8");
-                    g.execute(path, v);
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-                return false;
-            }
-        });
-
-        v.findViewById(R.id.prev_page).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                page--;
-                GetDataTask g = new GetDataTask();
-                g.execute(path, v);
-            }
-        });
-        v.findViewById(R.id.next_page).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                page++;
-                GetDataTask g = new GetDataTask();
-                g.execute(path, v);
-            }
-        });
-        v.findViewById(R.id.page).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                final NumberPicker numberPicker = new NumberPicker(getContext());
-                numberPicker.setMinValue(1);
-                numberPicker.setMaxValue(totalpg + 1);
-                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                builder.setTitle("Select page")
-                        .setView(numberPicker)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                page = numberPicker.getValue() - 1;
-                                GetDataTask g = new GetDataTask();
-                                g.execute(path, v);
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .create().show();
-            }
-        });
-        return v;
     }
 }
